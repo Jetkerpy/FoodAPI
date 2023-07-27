@@ -254,22 +254,23 @@ SWAGGER_SETTINGS = {
 
 # SET UP REACT
 
-CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS").split(",")
-CORS_ALLOW_METHODS = [
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'OPTIONS',
-    'HEAD'
-]
+# CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS").split(",")
+# CORS_ALLOW_METHODS = [
+#     'GET',
+#     'POST',
+#     'PUT',
+#     'PATCH',
+#     'DELETE',
+#     'OPTIONS',
+#     'HEAD'
+# ]
 
-CORS_ALLOW_HEADERS = [
-    'Accept',
-    'Accept-Encoding',
-    'Authorization',
-    'Content-Type',
-    'X-CSRFToken',  
-]
+# CORS_ALLOW_HEADERS = [
+#     'Accept',
+#     'Accept-Encoding',
+#     'Authorization',
+#     'Content-Type',
+#     'X-CSRFToken',  
+# ]
 
+CORS_ALLOW_ALL_ORIGINS = True
