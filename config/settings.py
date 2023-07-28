@@ -104,11 +104,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 #     }
 # }
 
-# RENDER DATABASE SERVER 
-DATABASES = {
-    'default': dj_database_url.parse(env("DATABASE_URL"))
-}
-# END RENDER DATABASE SERVER
+# # RENDER DATABASE SERVER 
+# DATABASES = {
+#     'default': dj_database_url.parse(env("DATABASE_URL"))
+# }
+# # END RENDER DATABASE SERVER
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -146,17 +146,13 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / 'static'
-#STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-# STATICFILES_DIRS = [
-#     BASE_DIR / 'static'
-# ]
 
 
 # FOR MEDIA IMAGE
 MEDIA_URL = "/media/"
 #MEDIA_ROOT = BASE_DIR / "media"
 
-MEDIA_ROOT = '/opt/render/project/src/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # END FOR MEDIA IMAGE
 
