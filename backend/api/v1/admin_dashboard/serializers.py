@@ -1,7 +1,7 @@
 import pytz
 from backend.api.v1.product.serializers import IngredientSerializer
 from backend.product.models import Category, Ingredient, Product
-from backend.restaurant.models import Feedback
+from backend.restaurant.models import Feedback, Media, Restaurant
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
@@ -123,6 +123,47 @@ class ReviewSerializer(serializers.ModelSerializer):
         return data
 # END REVIEW SERIALIZERS
 
+
+# MEDIA SERIALIZERS
+class CompanyMediaSerializer(serializers.ModelSerializer):
+    restaurant = serializers.SlugRelatedField(slug_field="slug", queryset= Restaurant.objects.all())
+    class Meta:
+        model = Media
+        fields = ("restaurant", "image", "alt_text", "is_feature", "created_at", "updated_at")
+        extra_kwargs = {
+            "image": {"required": True}
+        }
+
+
+    def validate_image(self, value):
+        if value is None:
+            raise serializers.ValidationError("You can't save data without the image.")
+        return value
+
+    
+    def update(self, instance, validated_data):
+        instance.restaurant = validated_data.get("restaurant", instance.restaurant)
+        instance.image = validated_data.get("image", instance.image)
+        instance.alt_text = validated_data.get("alt_text", instance.alt_text)
+        is_feature = validated_data.get("is_feature")
+
+        if validated_data.get("image"):
+            if instance.image and instance.image is not None:
+                if default_storage.exists(instance.image.path):
+                    default_storage.delete(instance.image.path)
+        
+        if is_feature:
+            self.__update_is_feature()
+            instance.is_feature = is_feature
+        instance.save()
+        return instance
+
+    
+    @classmethod
+    def __update_is_feature(cls):
+        Media.objects.filter(is_feature = True).update(is_feature = False)
+        
+# END MEDIA SERIALIZERS 
 
 
 

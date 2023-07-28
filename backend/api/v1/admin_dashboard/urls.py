@@ -15,7 +15,20 @@ urlpatterns = [
     path('product/edit_and_detail/<str:slug>/', views.ProductViewSet.as_view({'put': 'update', 'get': 'retrieve'}), name = 'product_edit_detail'),
     path('product/destroy/<str:slug>/', views.ProductViewSet.as_view({'delete': 'destroy'}), name = 'product_destroy'),
     # END PRODUCT
-
+    # REVIEWS
     path('reviews/', views.ReviewAPiView.as_view({'get': 'list'}), name = "review_list"),
-    
+    # END REVIEWS
+    # ADDRESS
+    path('addresses/', views.AddressAPIViewSet.as_view({'get': 'list'}), name = "address_list"),
+    path('address/add/', views.AddressAPIViewSet.as_view({'post': 'create'}), name = "address_add"),
+    path('address/edit_and_detail/<str:pk>/', views.AddressAPIViewSet.as_view({'put': 'update', 'get': 'retrieve'}), name = "address_edit_detail"),
+    path('address/destroy/<str:pk>/', views.AddressAPIViewSet.as_view({'delete': 'destroy'}), name = "address_destroy"),
+    # END ADDRESS
+    # RESTAURANT & media
+    path('restaurant/', views.RestaurantApiViewSet.as_view({'get': 'restaurant'}), name = 'admin_restaurant'),
+    path('restaurant/add/', views.RestaurantApiViewSet.as_view({'post': 'create'}), name = 'add_restaurant'),
+
+    path('restaurant/media/add/', views.RestaurantMediaApiViewSet.as_view({'post': 'create'}), name = 'add_media_to_restaurant'),
+    path('restaurant/media/edit/<str:pk>/', views.RestaurantMediaApiViewSet.as_view({'put': 'update'}), name = 'edit_media_from_restaurant'),
+    # END RESTAURANT & media
 ]

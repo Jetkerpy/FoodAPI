@@ -13,7 +13,7 @@ def restaurant(request):
         Restaurant API View
     """
     try:
-        restaurant = Restaurant.objects.get()
+        restaurant = Restaurant.objects.get(slug = 'intuza-eats')
         serializer = RestaurantSerializer(restaurant, many = False, context = {'request': request})
         return Response(
             {'restaurant': serializer.data},
@@ -29,7 +29,7 @@ def restaurant(request):
 
 @api_view(['GET'])
 def addresses(request):
-    addresses = Address.objects.all()
+    addresses = Address.objects.filter(is_default = True)
     if not addresses:
         return Response({"error": "no addresses found"}, status=status.HTTP_404_NOT_FOUND)
     serializer = AddressSerializer(addresses, many = True)

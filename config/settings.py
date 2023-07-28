@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -153,7 +154,10 @@ STATIC_ROOT = BASE_DIR / 'static'
 
 # FOR MEDIA IMAGE
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+#MEDIA_ROOT = BASE_DIR / "media"
+
+MEDIA_ROOT = os.path.join("/opt/render/project/src", 'media')
+
 # END FOR MEDIA IMAGE
 
 # Default primary key field type

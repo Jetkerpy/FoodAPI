@@ -129,6 +129,11 @@ class Address(models.Model):
         blank=True,
         null=True
     )
+    is_default = models.BooleanField(
+        _("company default address"),
+        default=False,
+        help_text=_("format: not required, only one address is_default=True")
+    )
     created_at = models.DateTimeField(
         auto_now_add= True,
         verbose_name=_("date address created"),

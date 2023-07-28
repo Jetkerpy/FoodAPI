@@ -1,14 +1,16 @@
 from backend.api.v1.product.serializers import (CategorySerializer,
                                                 ProductSerializer)
+from backend.api.v1.restaurant.serializers import (AddressSerializer,
+                                                   RestaurantSerializer)
 from backend.api.v1.viewsets.permissions import AdminDashboardPermission
 from backend.product.models import Category, Ingredient, Product
-from backend.restaurant.models import Feedback
+from backend.restaurant.models import Address, Feedback, Media, Restaurant
 from rest_framework import (filters, generics, permissions, response, status,
                             viewsets)
 from rest_framework.decorators import action
 
-from .serializers import (CategoryUpdateSerializer, ProductUpdateSerializer,
-                          ReviewSerializer)
+from .serializers import (CategoryUpdateSerializer, CompanyMediaSerializer,
+                          ProductUpdateSerializer, ReviewSerializer)
 
 
 # CATEGORY API VIEW SIDE
@@ -87,3 +89,46 @@ class ReviewAPiView(viewsets.ReadOnlyModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = [AdminDashboardPermission]
 # END REVIEW API VIEWS
+
+
+# ADDRESS API VIEWS
+class AddressAPIViewSet(viewsets.ModelViewSet):
+    queryset = Address.objects.all()
+    serializer_class = AddressSerializer
+    permission_classes = [AdminDashboardPermission]
+
+    def destroy(self, request, *args, **kwargs):
+        """
+            Bellow we gonna prevent to removing address
+            if the is_default field is set to True
+        """
+        instance = self.get_object()
+        if instance.is_default:
+            return response.Response(
+                {"message": "You can't remove the default address. So set default to another address."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+# END ADDRESS API VIEWS
+
+
+# RESTAURANT API VIEWS
+class RestaurantApiViewSet(viewsets.ModelViewSet):
+    queryset = Restaurant.objects.all()
+    serializer_class = RestaurantSerializer
+    
+
+    @action(detail=False, methods='GET')
+    def restaurant(self, request):
+        restaurant = self.queryset.last()
+        serializer = self.get_serializer(restaurant)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
+# END RESTAURANT API VIEWS
+
+
+# RESTAURANT MEDIA API VIEW
+class RestaurantMediaApiViewSet(viewsets.ModelViewSet):
+    queryset = Media.objects.all()
+    serializer_class = CompanyMediaSerializer
+    http_method_names = ['post', 'put']
+# END RESTAURANT MEDIA API VIEW
