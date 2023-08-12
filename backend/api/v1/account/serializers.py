@@ -3,8 +3,8 @@ import re
 
 from backend.account.models import UserBase
 from backend.account.validators import validate_uzb_phone_number
+from backend.api.v1.viewsets.utils import remove_image
 from backend.api.v1.viewsets.validators import validate_username
-from django.core.files.storage import default_storage
 from rest_framework import serializers
 
 from .utils import generate_token
@@ -77,13 +77,12 @@ class MyAccountSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(validators = [validate_username])
     class Meta:
         model = UserBase
-        fields = ("first_name", "last_name", "phone_number", "avatar", "created_at", "updated_at")
+        fields = ("first_name", "phone_number", "avatar", "created_at", "updated_at")
     
-
+    
     def update(self, instance, validated_data):
         old_image = instance.avatar
         instance.first_name = validated_data.get("first_name", instance.first_name)
-        instance.last_name = validated_data.get("last_name", instance.last_name)
         instance.phone_number = validated_data.get("phone_number", instance.phone_number)
         instance.avatar = validated_data.get("avatar", instance.avatar)
         
@@ -91,8 +90,7 @@ class MyAccountSerializer(serializers.ModelSerializer):
             # HELP US TO REMOVE OLD IMAGE FROM MEDIA IF OLD IMAGE IS DEFAULT 
             # SO IT WILL NOT BE REMOVE
             if old_image and old_image.name != "avatars/no_photo.png":
-                if default_storage.exists(old_image.path):
-                    default_storage.delete(old_image.path)
+                remove_image(image=old_image)
 
         instance.save()
         return instance

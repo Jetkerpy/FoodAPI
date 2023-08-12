@@ -1,8 +1,11 @@
+from backend.account.models import UserBase
 from backend.api.v1.product.serializers import (CategorySerializer,
                                                 ProductSerializer)
 from backend.api.v1.restaurant.serializers import (AddressSerializer,
                                                    RestaurantSerializer)
-from backend.api.v1.viewsets.permissions import AdminDashboardPermission
+from backend.api.v1.viewsets.permissions import (AdminDashboardPermission,
+                                                 IsOwnerOfProfile)
+from backend.api.v1.viewsets.utils import remove_image
 from backend.product.models import Category, Ingredient, Product
 from backend.restaurant.models import Address, Feedback, Media, Restaurant
 from rest_framework import (filters, generics, permissions, response, status,
@@ -10,7 +13,8 @@ from rest_framework import (filters, generics, permissions, response, status,
 from rest_framework.decorators import action
 
 from .serializers import (CategoryUpdateSerializer, CompanyMediaSerializer,
-                          ProductUpdateSerializer, ReviewSerializer)
+                          PasswordResetSerializer, ProductUpdateSerializer,
+                          ReviewSerializer)
 
 
 # CATEGORY API VIEW SIDE
@@ -39,7 +43,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
             This is help us to remove image from MEDIA, when category object will be deleted
         """
         if instance.image:
-            instance.image.delete()
+            remove_image(image=instance.image)
         instance.delete()
         return response.Response(
             {'message': 'Object successfully deleted.'},
@@ -50,7 +54,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 # PRODUCT & INGREDIENTS API VIEW
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
+    queryset = Product.objects.all().select_related("category").prefetch_related('ingredients')
     serializer_class = ProductSerializer
     permission_classes = [AdminDashboardPermission]
     filter_backends = [filters.SearchFilter]
@@ -71,7 +75,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         """
         if instance.image:
             if instance.image.name != "product_images/no-food.webp":
-                instance.image.delete()
+                remove_image(image=instance.image)
         instance.delete()
         return response.Response(
             {'message': 'Object successfully deleted.'},
@@ -85,7 +89,7 @@ class ReviewAPiView(viewsets.ReadOnlyModelViewSet):
     """
         Review API View
     """
-    queryset = Feedback.objects.all()
+    queryset = Feedback.objects.all().select_related('customer')
     serializer_class = ReviewSerializer
     permission_classes = [AdminDashboardPermission]
 # END REVIEW API VIEWS
@@ -116,13 +120,39 @@ class AddressAPIViewSet(viewsets.ModelViewSet):
 class RestaurantApiViewSet(viewsets.ModelViewSet):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
+    permission_classes = [AdminDashboardPermission]
+    lookup_field = "slug"
     
 
-    @action(detail=False, methods='GET')
+    @action(detail=True, methods='GET')
     def restaurant(self, request):
-        restaurant = self.queryset.last()
+        try:
+            restaurant = self.queryset.get()
+        except Restaurant.DoesNotExist:
+            return response.Response(
+            {"error": "no restaurant found"},
+            status=status.HTTP_404_NOT_FOUND
+        ) 
         serializer = self.get_serializer(restaurant)
         return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    def destroy(self, request, *args, **kwargs):
+        """
+            Bellow we gonna delete Restaurant & Media files
+        """
+        instance = self.get_object()
+        if instance.qr_code:
+            remove_image(instance.qr_code) # Remove qr_code images from Media
+        restaurant_images = instance.restaurant_images.all()
+        if restaurant_images:
+            for restaurant_media in restaurant_images:
+                if restaurant_media.image:
+                    # Remove media images which is referenced with restaurant
+                    remove_image(restaurant_media.image)
+        instance.delete()
+        response_data = {"detail": "Successfully deleted."}
+        return response.Response(response_data, status= status.HTTP_204_NO_CONTENT)
 # END RESTAURANT API VIEWS
 
 
@@ -130,5 +160,37 @@ class RestaurantApiViewSet(viewsets.ModelViewSet):
 class RestaurantMediaApiViewSet(viewsets.ModelViewSet):
     queryset = Media.objects.all()
     serializer_class = CompanyMediaSerializer
-    http_method_names = ['post', 'put']
-# END RESTAURANT MEDIA API VIEW
+    permission_classes = [AdminDashboardPermission]
+    http_method_names = ['post', 'put', 'delete']
+
+
+    def destroy(self, request, *args, **kwargs):
+        """
+            Bellow we gonna delete media of restaurant
+        """
+        instance = self.get_object()
+        media = Media.objects.get(pk = instance.pk)
+        media.delete()
+        if instance.image:
+            remove_image(image=instance.image)
+        response_data = {"detail": "Successfully deleted."}
+        return response.Response(response_data, status= status.HTTP_204_NO_CONTENT)
+# END RESTAURANT MEDIA API 
+
+
+# PASSWORD RESET API VIEW
+class PasswordResetViewSet(viewsets.ViewSet):
+    serializer_class = PasswordResetSerializer
+    permission_classes = [IsOwnerOfProfile]
+
+    @action(detail=False, methods=['put'])
+    def reset_password(self, request, *args, **kwargs):
+        user = request.user
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_password = serializer.validated_data.get("new_password")
+        if new_password:
+            user.set_password(new_password)
+            user.save()
+        return response.Response({'status': 'success'}, status=status.HTTP_200_OK)
+# END PASSWORD RESET API VIEW

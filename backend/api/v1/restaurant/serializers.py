@@ -1,3 +1,4 @@
+from backend.api.v1.viewsets.utils import remove_image
 from backend.restaurant.models import Address, Feedback, Media, Restaurant
 from rest_framework import serializers
 
@@ -24,11 +25,35 @@ class RestaurantSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "qr_code": {'read_only': True},
             "slug": {'read_only': True},
-            "domain_name": {'write_only': True},
+            "domain_name": {'write_only': True, 'required': False},
         }
 
+    
+    def create(self, validated_data):
+        restaurant = Restaurant.objects.exists()
+        if restaurant:
+            raise serializers.ValidationError("Sorry, you can't save again.")
+        return super().create(validated_data)
 
-    def get_qr_code(self, obj):
+    
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get("name", instance.name)
+        instance.about_us = validated_data.get("about_us", instance.about_us)
+        instance.phone_number1 = validated_data.get("phone_number1", instance.phone_number1)
+        instance.phone_number2 = validated_data.get("phone_number2", instance.phone_number2)
+        instance.telegram_link = validated_data.get("telegram_link", instance.telegram_link)
+        instance.instagram_link = validated_data.get("instagram_link", instance.instagram_link)
+        instance.facebook_link = validated_data.get("facebook_link", instance.facebook_link)
+        new_domain_name = validated_data.get("domain_name")
+        if new_domain_name and new_domain_name != instance.domain_name:
+            if instance.qr_code:
+                remove_image(image=instance.qr_code)
+            instance.domain_name = new_domain_name
+        instance.save()
+        return instance
+
+
+    def get_qr_code(self, obj) -> str:
         request = self.context.get("request")
         if obj.qr_code:
             return request.build_absolute_uri(obj.qr_code.url)
@@ -74,7 +99,7 @@ class AddressSerializer(serializers.ModelSerializer):
     def __update_address(cls):
         Address.objects.filter(is_default = True).update(is_default = False)
 
-    
+
 
 class FeedBackSerializer(serializers.ModelSerializer):
     restaurant = serializers.SlugRelatedField(

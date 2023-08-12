@@ -1,7 +1,9 @@
 from backend.account.models import UserBase
 from backend.api.v1.viewsets.permissions import IsOwnerOfProfile
+from backend.restaurant.models import Feedback
 from rest_framework import generics, status, views
 from rest_framework.response import Response
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import (MyAccountSerializer, PhoneTokenVerifySerializer,
@@ -81,23 +83,28 @@ class ResendPhoneNumberApiView(views.APIView):
 # END RESEND AGAIN API VIEW
 
 
-# PROFILE API VIEW FOR SPECIFIC USER
-class ProfileRetrieveApiView(generics.RetrieveAPIView):
+# PROFILE API VIEW FOR SPECIFIC USER & Edit
+class ProfileRetrieveEditApiView(generics.RetrieveUpdateAPIView):
     """
         Customer's Profile
     """
-    queryset = UserBase.objects.all()
+    queryset = UserBase.objects.all().defer("last_name", "password", "last_login", "is_staff", "phone_token", "expires_at")
     serializer_class = MyAccountSerializer
     permission_classes = [IsOwnerOfProfile]
-# END PROFILE API VIEW FOR SPECIFIC USER
+# END PROFILE API VIEW FOR SPECIFIC USER & Edit
 
 
-# PROFILE EDIT API VIEW
-class ProfileEditApiView(generics.UpdateAPIView):
+
+# OUR CUSTOM TOKENOBTAINPAIRSERIALIZER
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-        Profile Edit Api View
+        WE ADD EXTRA FIELD FOR FEEDBACK 
+        AND ALSO IN SETTINGS CHANGE DEFAULT CHECK OUT
     """
-    queryset = UserBase.objects.all()
-    serializer_class = MyAccountSerializer
-    permission_classes = [IsOwnerOfProfile]
-# END PROFILE EDIT API VIEW
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        is_feedback = Feedback.objects.filter(customer = user).exists()
+        token['is_feedback'] = is_feedback
+        return token
+# END OUR CUSTOM TOKENOBTAINPAIRSERIALIZER

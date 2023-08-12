@@ -1,4 +1,5 @@
 from backend.product.models import Category, Ingredient, Product
+from django.db.models import Prefetch
 from rest_framework import generics, response, status
 
 from .serializers import CategorySerializer, ProductSerializer
@@ -26,7 +27,40 @@ class ProductListApiView(generics.ListAPIView):
     serializer_class = ProductSerializer
 
     def get_queryset(self):
-        queryset = Product.objects.filter(is_active = True)
+        queryset = Product.objects.filter(is_active = True).select_related("category").defer(
+            "discount_percent",
+            "discounted_price",
+            "quantity",
+            "category__image",
+            "category__is_active",
+            "category__slug",
+        ).prefetch_related(
+            Prefetch("ingredients", queryset=Ingredient.objects.only("name"))
+        )
+        """JOQARIDA BIZLER OPTIMIZATION QILDIQ TUWRIMA ENDI BUL JERDE
+        DEFER() PAYDALANIP KETTIK SEBEBI AYRIM FIELD LAR KEREK EMES
+        TOMENDEGI QILIP LOADED BOLADI QASHAN DATABASE QUERY ISKE QOSILGAN
+        KEZDE TOMENDEGI ISKE TUSEDI, KORIP TURG'ANDAY KEREK EMES FIELD
+        LERDE BAR SONI ALIP TASLADIQ DEFER() ARQALI
+
+        SELECT 
+            "product_product"."id", "product_product"."category_id", 
+            "product_product"."name", "product_product"."slug", 
+            "product_product"."description", "product_product"."original_price", 
+            "product_product"."discount_percent", "product_product"."discounted_price", 
+            "product_product"."quantity", "product_product"."image", 
+            "product_product"."is_active", "product_product"."created_at", 
+            "product_product"."updated_at", "product_category"."id", 
+            "product_category"."name", "product_category"."slug", 
+            "product_category"."image", "product_category"."is_active" 
+        FROM 
+            "product_product" INNER JOIN "product_category" 
+        ON 
+            ("product_product"."category_id" = "product_category"."id") 
+        WHERE "product_product"."is_active"
+        """
+        # print(queryset.query)
+        # print("____________-")
         return queryset
 
 

@@ -1,8 +1,11 @@
+import re
+
 import pytz
+from backend.account.models import UserBase
 from backend.api.v1.product.serializers import IngredientSerializer
+from backend.api.v1.viewsets.utils import remove_image
 from backend.product.models import Category, Ingredient, Product
 from backend.restaurant.models import Feedback, Media, Restaurant
-from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -56,12 +59,10 @@ class CategoryUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f'{name} already exists, sorry :)')
 
 
-
     @classmethod
     def __delete_old_image(cls, old_image, new_image):
         if old_image and old_image != new_image:
-            if default_storage.exists(old_image.path):
-                default_storage.delete(old_image.path)
+            remove_image(image=old_image)
 # END CATEGORY UPDATE SERIALIZER 
 
 
@@ -83,8 +84,7 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         if new_image:
             #DELETE OLD IMAGE IF NOT EQUAL NO_FOOD.WEBP
             if instance.image and instance.image.name != "product_images/no-food.webp":
-                if default_storage.exists(instance.image.path):
-                    default_storage.delete(instance.image.path)
+                remove_image(image=instance.image)
             instance.image = new_image
         
         with transaction.atomic():
@@ -134,23 +134,23 @@ class CompanyMediaSerializer(serializers.ModelSerializer):
             "image": {"required": True}
         }
 
-
-    def validate_image(self, value):
-        if value is None:
+    
+    def create(self, validated_data):
+        image = validated_data.get("image")
+        if not image:
             raise serializers.ValidationError("You can't save data without the image.")
-        return value
+        return super().create(validated_data)
 
     
     def update(self, instance, validated_data):
         instance.restaurant = validated_data.get("restaurant", instance.restaurant)
-        instance.image = validated_data.get("image", instance.image)
         instance.alt_text = validated_data.get("alt_text", instance.alt_text)
         is_feature = validated_data.get("is_feature")
-
-        if validated_data.get("image"):
+        new_image = validated_data.get("image")
+        if new_image:
             if instance.image and instance.image is not None:
-                if default_storage.exists(instance.image.path):
-                    default_storage.delete(instance.image.path)
+                remove_image(image=instance.image)
+            instance.image = new_image
         
         if is_feature:
             self.__update_is_feature()
@@ -162,9 +162,24 @@ class CompanyMediaSerializer(serializers.ModelSerializer):
     @classmethod
     def __update_is_feature(cls):
         Media.objects.filter(is_feature = True).update(is_feature = False)
-        
 # END MEDIA SERIALIZERS 
 
 
+# ADMIN PROFILE SERIALIZER
+class PasswordResetSerializer(serializers.Serializer):
+    new_password = serializers.CharField()
+    confirm_password = serializers.CharField()
+
+    def validate(self, attrs):
+        password_regex = r"^(?=.*\d).{8,}$"
+        password = attrs.get("new_password")
+        password2 = attrs.get("confirm_password")
+        if not re.match(password_regex, password):
+            raise serializers.ValidationError("Kiritilgen password keminde 8 den to'men bolmawi, ja'ne sannan 1 san boliwi kerek.")
+        
+        if password != password2:
+            raise serializers.ValidationError("Passwords do not match")
+        return attrs
+# END ADMIN PROFILE SERIALIZER
 
 

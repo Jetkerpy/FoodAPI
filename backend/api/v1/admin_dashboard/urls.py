@@ -1,3 +1,4 @@
+from backend.api.v1.account.views import ProfileRetrieveEditApiView
 from django.urls import path
 
 from . import views
@@ -27,8 +28,14 @@ urlpatterns = [
     # RESTAURANT & media
     path('restaurant/', views.RestaurantApiViewSet.as_view({'get': 'restaurant'}), name = 'admin_restaurant'),
     path('restaurant/add/', views.RestaurantApiViewSet.as_view({'post': 'create'}), name = 'add_restaurant'),
-
+    path('restaurant/edit/<str:slug>/', views.RestaurantApiViewSet.as_view({'put': 'update'}), name = 'edit_restaurant'),
+    path('restaurant/destroy/<str:slug>/', views.RestaurantApiViewSet.as_view({'delete': 'destroy'}), name = 'delete_restaurant'),
     path('restaurant/media/add/', views.RestaurantMediaApiViewSet.as_view({'post': 'create'}), name = 'add_media_to_restaurant'),
     path('restaurant/media/edit/<str:pk>/', views.RestaurantMediaApiViewSet.as_view({'put': 'update'}), name = 'edit_media_from_restaurant'),
+    path('restaurant/media/delete/<str:pk>/', views.RestaurantMediaApiViewSet.as_view({'delete': 'destroy'}), name = 'delete_media_from_restaurant'),
     # END RESTAURANT & media
+    # ADMIN PROFILE & EDIT
+    path('profile/detail_edit/<str:pk>/', ProfileRetrieveEditApiView.as_view(), name = 'admin_detail_edit'),
+    path('profile/reset_password/', views.PasswordResetViewSet.as_view({"put": "reset_password"}), name = 'reset_password'),
+    # END ADMIN PROFILE & EDIT 
 ]

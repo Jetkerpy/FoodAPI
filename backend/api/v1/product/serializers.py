@@ -56,8 +56,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        ingredients_data = instance.ingredients.values_list("name", flat=True)
-        representation["ingredients"] = ingredients_data
+        ingredients_data = representation.pop("ingredients")
+        representation["ingredients"] = [ingredient['name'] for ingredient in ingredients_data]
         return representation
 
 
